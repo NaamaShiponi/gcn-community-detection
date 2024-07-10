@@ -2,6 +2,7 @@
 GCN model for community detection using the hungarian algorithm for accuracy calculation.
 '''
 import torch
+import argparse
 import matplotlib.pyplot as plt
 from scipy.optimize import linear_sum_assignment
 from gcn_net import GCNNet
@@ -10,7 +11,7 @@ from communities_dataset import create_dataset, load_dataset, evaluate_spectral_
 
 class GCNCommunityDetection:
     def __init__(self, num_nodes, num_classes, q, p, num_graphs, learning_rate=0.001,
-                 epochs=100, add_permutations=False, create_new_data=True, dropout=0.5):
+                 epochs=100, add_permutations=False, create_new_data=True, dropout=0.5,grap_dgl_path=None):
         # dataset parameters
         self.num_nodes = num_nodes
         self.num_classes = num_classes
@@ -23,6 +24,8 @@ class GCNCommunityDetection:
         self.epochs = epochs
         self.learning_rate = learning_rate
         self.create_new_data = create_new_data
+        
+        self.grap_dgl_path=grap_dgl_path
 
         # model, optimizer and loss function
         self.dropout = dropout
@@ -34,17 +37,19 @@ class GCNCommunityDetection:
         self.loss_list = []
         self.train_accuracy_list = []
         self.test_accuracy_list = []
+        
+        
 
     def prepare_data(self):
         num_train_graphs = int(0.8 * self.num_graphs)
         num_test_graphs = self.num_graphs - num_train_graphs
         if self.create_new_data:
             create_dataset(
-                self.num_nodes, self.num_classes, self.q, self.p, num_train_graphs, "pt_train.pt", self.add_permutations)
+                self.num_nodes, self.num_classes, self.q, self.p, num_train_graphs, "pt_train.pt",self.grap_dgl_path, self.add_permutations)
             # create_dataset(
-            #     self.num_nodes, self.num_classes, self.q, self.p, num_val_graphs, "pt_val.pt")
+            #     self.num_nodes, self.num_classes, self.q, self.p, num_val_graphs, "pt_val.pt",self.grap_dgl_path)
             create_dataset(
-                self.num_nodes, self.num_classes, self.q, self.p, num_test_graphs, "pt_test.pt")
+                self.num_nodes, self.num_classes, self.q, self.p, num_test_graphs, "pt_test.pt",self.grap_dgl_path)
         train_dataset = load_dataset("pt_train.pt")
         test_dataset = load_dataset("pt_test.pt")
         print(f"Number of train graphs: {len(train_dataset)}")
@@ -172,22 +177,61 @@ class GCNCommunityDetection:
 
 
 if __name__ == '__main__':
-    # ---------- Parameters ----------
-    num_nodes = 200
-    num_classes = 3
-    num_graphs = 800
-    p = 0.9
-    q = 0.1
-    dropout = 0.3
-    epochs = 200
-    learning_rate = 0.0001
-    add_permutations = True
-    create_new_data = True
+    '''
+
+    Run use DGL graphs:
+        python3 gcn_model_hungarian.py --grap_dgl_path "/home/naama/.dgl/sbmmixture"
+    
+    Run without DGL graphs:
+        python3 main.py 
+        
+    Options parameters:
+        --num_nodes 100 
+        --num_classes 2 
+        --num_graphs 10 
+        --p 0.9 
+        --q 0.3 
+        --dropout 0 
+        --epochs 200 
+        --learning_rate 0.001 
+        --add_permutations False
+        --create_new_data True
+    
+    '''
+    # 
+    # python3 gcn_model_hungarian.py 
+    parser = argparse.ArgumentParser(description='GCN Community Detection Parameters')
+    parser.add_argument('--num_nodes', type=int, default=100, help='Number of nodes')
+    parser.add_argument('--num_classes', type=int, default=2, help='Number of classes')
+    parser.add_argument('--num_graphs', type=int, default=10, help='Number of graphs')
+    parser.add_argument('--p', type=float, default=0.9, help='Probability p')
+    parser.add_argument('--q', type=float, default=0.3, help='Probability q')
+    parser.add_argument('--dropout', type=float, default=0, help='Dropout rate')
+    parser.add_argument('--epochs', type=int, default=200, help='Number of epochs')
+    parser.add_argument('--learning_rate', type=float, default=0.0001, help='Learning rate')
+    parser.add_argument('--add_permutations', type=bool, default=False, help='Add permutations')
+    parser.add_argument('--create_new_data', type=bool, default=True, help='Create new data')
+    parser.add_argument('--grap_dgl_path', type=str, default=None, help='DGL graphs path')
+
+    args = parser.parse_args()
+
+    num_nodes = args.num_nodes
+    num_classes = args.num_classes
+    num_graphs = args.num_graphs
+    p = args.p
+    q = args.q
+    dropout = args.dropout
+    epochs = args.epochs
+    learning_rate = args.learning_rate
+    add_permutations = args.add_permutations
+    create_new_data = args.create_new_data
+    grap_dgl_path = args.grap_dgl_path
     # ------------------------------
+    
     gcn_cd = GCNCommunityDetection(
         num_nodes=num_nodes, num_classes=num_classes, q=q, p=p, num_graphs=num_graphs,
         learning_rate=learning_rate, epochs=epochs, add_permutations=add_permutations,
-        create_new_data=create_new_data, dropout=dropout)
+        create_new_data=create_new_data, dropout=dropout,grap_dgl_path=grap_dgl_path)
     test_accuracy, spectral_accuracy = gcn_cd.run()
     gcn_cd.plot_results()
     gcn_cd.save_model()
@@ -203,7 +247,7 @@ if __name__ == '__main__':
     # 5 times for each q, p
     for _ in range(5):
         data = create_dataset(num_nodes, num_classes, q,
-                              p, 1, "pt_new_graph.pt")
+                              p, 1, "pt_new_graph.pt",grap_dgl_path)
         data = load_dataset("pt_new_graph.pt")
         out = model(data[0])
         pred_labels = out.max(dim=1)[1]
@@ -225,7 +269,7 @@ if __name__ == '__main__':
     # 5 times for each different q, p
     for _ in range(5):
         data = create_dataset(num_nodes, num_classes,
-                              0.1, 0.9, 1, "pt_new_graph.pt")
+                              0.1, 0.9, 1, "pt_new_graph.pt",grap_dgl_path)
         data = load_dataset("pt_new_graph.pt")
         out = model(data[0])
         pred_labels = out.max(dim=1)[1]

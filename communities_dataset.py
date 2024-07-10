@@ -31,10 +31,12 @@ from torch_geometric.data import Data
 from itertools import permutations
 from sklearn.cluster import SpectralClustering
 from scipy.optimize import linear_sum_assignment
-
+import os
+import pickle
+import glob
 
 class CommunitiesDataset(torch.utils.data.Dataset):
-    def __init__(self, num_nodes, num_classes, q, p, base_graphs, include_permutations):
+    def __init__(self, num_nodes, num_classes, q, p, base_graphs,grap_dgl_path, include_permutations):
         self.include_permutations = include_permutations
         self.num_nodes = num_nodes
         self.num_classes = num_classes
@@ -42,6 +44,7 @@ class CommunitiesDataset(torch.utils.data.Dataset):
         self.q = q
         self.p = p
         self.data_list = []
+        self.grap_dgl_path=grap_dgl_path
         self.generate_data()
 
     def generate_graph(self):
@@ -74,26 +77,65 @@ class CommunitiesDataset(torch.utils.data.Dataset):
 
         return data
 
-    def generate_data(self):
-        for _ in range(self.base_graphs):
-            graph = self.generate_graph()
-            if self.include_permutations:
-                '''
-                    When running the dataset in the training with permutations included, for each graph we will
-                    create a new graph with the same structure but with permuted labels.                    
-                    For example, if the true labels are [0,1,2,2], than we have to the following permutations:
-                    [1,2,0,0], [2,1,0,0], [0,2,1,1], [2,0,1,1], [1,0,2,2], [0,1,2,2] - instead of just [0,1,2,2].
-                '''
-                unique_labels = graph.y.unique().tolist()
-                for perm in set(permutations(unique_labels)):
-                    permuted_labels = graph.y.clone()
-                    for idx, label in enumerate(unique_labels):
-                        permuted_labels[graph.y == label] = perm[idx]
-                    self.data_list.append(
-                        Data(x=graph.x, edge_index=graph.edge_index, y=permuted_labels))
-            else:
-                self.data_list.append(graph)
+    
+    def save_dgl_graphs(self,file):
+        
+        y = torch.randint(self.num_classes,
+                        (self.num_nodes, ), dtype=torch.long)
+        edge_index = []    
+        with open(file, 'rb') as f:
+            G, classes = pickle.load(f)
+            
+        for edge in G.edges:
+            edge_index.append([edge[0],edge[1]])
+            edge_index.append([edge[1],edge[0]])
+        
+        edge_index = torch.tensor(edge_index, dtype=torch.long).t().contiguous()
 
+        data = Data(edge_index=edge_index, num_nodes=self.num_nodes, y=y)
+        
+        data.y = torch.tensor(classes)
+        data.x = torch.eye(self.num_nodes)
+        print("y",data.y)
+        return data
+        
+        
+    def generate_data(self):
+        if self.grap_dgl_path:
+            print("DGL graph file")
+            graph_file = f'{self.grap_dgl_path}/graph_{self.num_nodes}_{self.num_classes}'
+            files = glob.glob(os.path.join(graph_file, '*'))
+            
+            # Loop through each file
+            for file in files:
+                if os.path.exists(file):
+                    # print(f"Loading graph from {file}")
+                    graph=self.save_dgl_graphs(file)
+                    self.data_list.append(graph)
+        else:
+            print("New graph")
+            for _ in range(self.base_graphs):
+                graph = self.generate_graph()
+                if self.include_permutations:
+                    '''
+                        When running the dataset in the training with permutations included, for each graph we will
+                        create a new graph with the same structure but with permuted labels.                    
+                        For example, if the true labels are [0,1,2,2], than we have to the following permutations:
+                        [1,2,0,0], [2,1,0,0], [0,2,1,1], [2,0,1,1], [1,0,2,2], [0,1,2,2] - instead of just [0,1,2,2].
+                    '''
+                    unique_labels = graph.y.unique().tolist()
+                    for perm in set(permutations(unique_labels)):
+                        permuted_labels = graph.y.clone()
+                        for idx, label in enumerate(unique_labels):
+                            permuted_labels[graph.y == label] = perm[idx]
+                        self.data_list.append(
+                            Data(x=graph.x, edge_index=graph.edge_index, y=permuted_labels))
+                else:
+                    self.data_list.append(graph)
+    
+        
+        
+        
     def __len__(self):
         return len(self.data_list)
 
@@ -106,9 +148,9 @@ class CommunitiesDataset(torch.utils.data.Dataset):
         return self
 
 
-def create_dataset(num_nodes, num_classes, q, p, num_graphs, file_name, include_permutations=False):
+def create_dataset(num_nodes, num_classes, q, p, num_graphs, file_name,grap_dgl_path, include_permutations=False):
     dataset = CommunitiesDataset(num_nodes, num_classes, q,
-                                 p, num_graphs, include_permutations)
+                                 p, num_graphs,grap_dgl_path, include_permutations)
     torch.save(dataset, file_name)
 
 

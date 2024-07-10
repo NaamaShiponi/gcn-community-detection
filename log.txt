@@ -1,0 +1,38 @@
+Number of train graphs: 640
+Number of test graphs: 160
+Epoch: 0, Train Loss: 1.0967, Train Accuracy: 0.3673, Test Accuracy: 0.3690
+Epoch: 10, Train Loss: 1.0882, Train Accuracy: 0.3673, Test Accuracy: 0.3690
+Epoch: 20, Train Loss: 0.9194, Train Accuracy: 0.6896, Test Accuracy: 0.6894
+Epoch: 30, Train Loss: 0.8513, Train Accuracy: 0.7167, Test Accuracy: 0.7225
+Epoch: 40, Train Loss: 0.7748, Train Accuracy: 0.8741, Test Accuracy: 0.8055
+Epoch: 50, Train Loss: 0.7331, Train Accuracy: 0.8956, Test Accuracy: 0.8126
+Epoch: 60, Train Loss: 0.7083, Train Accuracy: 0.9050, Test Accuracy: 0.8110
+Epoch: 70, Train Loss: 0.6898, Train Accuracy: 0.9114, Test Accuracy: 0.8095
+Epoch: 80, Train Loss: 0.6761, Train Accuracy: 0.9153, Test Accuracy: 0.8092
+Epoch: 90, Train Loss: 0.6693, Train Accuracy: 0.9201, Test Accuracy: 0.8051
+Epoch: 100, Train Loss: 0.6620, Train Accuracy: 0.9232, Test Accuracy: 0.8012
+Epoch: 110, Train Loss: 0.6574, Train Accuracy: 0.9251, Test Accuracy: 0.8031
+Epoch: 120, Train Loss: 0.6521, Train Accuracy: 0.9275, Test Accuracy: 0.8035
+Epoch: 130, Train Loss: 0.6482, Train Accuracy: 0.9286, Test Accuracy: 0.8033
+Epoch: 140, Train Loss: 0.6476, Train Accuracy: 0.9276, Test Accuracy: 0.8026
+Epoch: 150, Train Loss: 0.6451, Train Accuracy: 0.9339, Test Accuracy: 0.8056
+Epoch: 160, Train Loss: 0.6422, Train Accuracy: 0.9344, Test Accuracy: 0.8052
+Epoch: 170, Train Loss: 0.6389, Train Accuracy: 0.9271, Test Accuracy: 0.8020
+Epoch: 180, Train Loss: 0.6371, Train Accuracy: 0.9355, Test Accuracy: 0.8043
+Epoch: 190, Train Loss: 0.6364, Train Accuracy: 0.9284, Test Accuracy: 0.8016
+
+################################# Summary #################################
+Number of nodes: 200
+Number of classes: 3
+q: 0.1
+p: 0.9
+Number of graphs: 800
+Learning rate: 0.0001
+Dropout: 0.3
+Add permutations: False
+Epochs: 200
+Number of parameters: 17219
+Final test accuracy: 0.8016
+Final train accuracy: 0.9284
+Spectral clustering accuracy on test set: 1.0000
+###########################################################################
