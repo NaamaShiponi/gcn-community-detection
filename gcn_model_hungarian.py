@@ -7,11 +7,11 @@ import matplotlib.pyplot as plt
 from scipy.optimize import linear_sum_assignment
 from gcn_net import GCNNet
 from communities_dataset import create_dataset, load_dataset, evaluate_spectral_clustering
-
+import os
 
 class GCNCommunityDetection:
     def __init__(self, num_nodes, num_classes, q, p, num_graphs, learning_rate=0.001,
-                 epochs=100, add_permutations=False, create_new_data=True, dropout=0.5,grap_dgl_path=None):
+                 epochs=100, add_permutations=False, create_new_data=True, dropout=0.5,grap_dgl_path=None,run_number=0):
         # dataset parameters
         self.num_nodes = num_nodes
         self.num_classes = num_classes
@@ -26,6 +26,7 @@ class GCNCommunityDetection:
         self.create_new_data = create_new_data
         
         self.grap_dgl_path=grap_dgl_path
+        self.run_number=run_number
 
         # model, optimizer and loss function
         self.dropout = dropout
@@ -168,7 +169,7 @@ class GCNCommunityDetection:
         plt.title("Loss, Train Accuracy and Test Accuracy")
         #  the epochs are jumps of 10
         plt.xticks(range(0, self.epochs, 10))
-
+        plt.savefig(f'results/myModel_{self.run_number}.png')
         plt.legend()
         plt.show()
 
@@ -180,10 +181,10 @@ if __name__ == '__main__':
     '''
 
     Run use DGL graphs:
-        python3 gcn_model_hungarian.py --grap_dgl_path "/home/naama/.dgl/sbmmixture"
+        python3 gcn_model_hungarian.py --grap_dgl_path "/home/naama/.dgl/sbmmixture" --run_number 000
     
     Run without DGL graphs:
-        python3 main.py 
+        python3 gcn_model_hungarian.py --run_number 000
         
     Options parameters:
         --num_nodes 100 
@@ -212,6 +213,7 @@ if __name__ == '__main__':
     parser.add_argument('--add_permutations', type=bool, default=False, help='Add permutations')
     parser.add_argument('--create_new_data', type=bool, default=True, help='Create new data')
     parser.add_argument('--grap_dgl_path', type=str, default=None, help='DGL graphs path')
+    parser.add_argument('--run_number', type=str, required=True, help='Run number for this execution')
 
     args = parser.parse_args()
 
@@ -226,18 +228,22 @@ if __name__ == '__main__':
     add_permutations = args.add_permutations
     create_new_data = args.create_new_data
     grap_dgl_path = args.grap_dgl_path
+    run_number= args.run_number
     # ------------------------------
+    # create a folder to save the results
+    if not os.path.exists('results'):
+        os.makedirs('results')
     
     gcn_cd = GCNCommunityDetection(
         num_nodes=num_nodes, num_classes=num_classes, q=q, p=p, num_graphs=num_graphs,
         learning_rate=learning_rate, epochs=epochs, add_permutations=add_permutations,
-        create_new_data=create_new_data, dropout=dropout,grap_dgl_path=grap_dgl_path)
+        create_new_data=create_new_data, dropout=dropout,grap_dgl_path=grap_dgl_path,run_number=run_number)
     test_accuracy, spectral_accuracy = gcn_cd.run()
     gcn_cd.plot_results()
     gcn_cd.save_model()
-    with open("results.csv", "a") as f:
-        f.write(f"{num_nodes},{num_classes},{q},{p},{num_graphs},{learning_rate},{epochs}," +
-                f"{add_permutations},{dropout},{test_accuracy:.8f},{spectral_accuracy:.8f}\n")
+    with open("results/results.csv", "a") as f:
+        f.write(f"{run_number},{num_nodes},{num_classes},{q},{p},{num_graphs},{learning_rate},{epochs}," +
+                f"{add_permutations},{dropout},{test_accuracy:.8f},{spectral_accuracy:.8f},{grap_dgl_path}\n")
 
     # Load the model, create graphs and predict the communities
     model = GCNNet(num_nodes, num_classes, dropout)
